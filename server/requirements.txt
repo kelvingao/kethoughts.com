@@ -1,0 +1,6 @@
+pycrypto==2.6.1
+requests==2.6.0
+six==1.10.0
+tornado==6.0.2
+wechat-sdk==0.6.4
+xmltodict==0.9.2

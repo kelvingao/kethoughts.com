@@ -21,9 +21,16 @@
 # SOFTWARE.
 
 import logging
+import yaml
 
+def get_config(path):
+    with open(path) as f:
+        config = yaml.safe_load(f)
+    return config
 
-def createLogger(name, level=logging.WARNING):
+config = get_config('./config/kethoughts.yml')
+
+def createLogger(name, level=logging.DEBUG):
     """:Return: a logger with the given `name` and optional `level`."""
 
     logger = logging.getLogger(name)

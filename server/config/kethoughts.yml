@@ -1,0 +1,11 @@
+
+---
+appName: kethoughts.com
+
+server:
+  port: 5000
+
+weixin:
+  appId: wx2033ac8b479c9fa0
+  appSecret: 0adc2c7ab0764d402a0f33840e1eff49
+  token: weixin

@@ -21,21 +21,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
 import tornado.ioloop
 import tornado.web
 import tornado.locks
 import hashlib
+import json
 
-from wechat_sdk import WechatConf
-from wechat_sdk import WechatBasic
-from tornado.options import define, options
-from utils import createLogger
-
-define("port", default=5000, help="run on the given port", type=int)
+from wx.sign import Sign
+from wechatpy.utils import check_signature
+from wechatpy.exceptions import InvalidSignatureException
+from utils import createLogger, config
 
 # Configure logging
-logger = createLogger(__name__, level=logging.DEBUG)
+logger = createLogger(__name__)
 
 
 class NoResultError(Exception):
@@ -43,47 +41,74 @@ class NoResultError(Exception):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    pass
+    def set_default_headers(self):
+        """
+        response the right CORS headers
+        """
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def options(self):
+        # no body
+        self.set_status(204)
+        self.finish()
 
 
 class WeixinHandler(BaseHandler):
-    """WeChat signature verification。
-
-    Args:
-      signature: WeChat encryption signature, including the user supplied token，the timestamp and nonce parameter
-      echostr: a random string
-      timestamp: time stamp
-      nonce:  a random number
-    
-    Returns:
-      The echostr
-    """
     async def get(self):
+        """WeChat signature verification.
+
+        Args:
+            signature: WeChat encryption signature, including a user token，timestamp and a nonce
+            echostr: a random string
+            timestamp: time stamp
+            nonce:  a random number
+        
+        Returns:
+            The echostr
+        """
         signature = self.get_argument("signature")
         echostr = self.get_argument("echostr")
         timestamp = self.get_argument("timestamp")
         nonce = self.get_argument("nonce")
-
-        logger.debug("%s: get signature: %s, echostr: %s, timestamp: %s, nonce: %s", __class__, signature, echostr, timestamp, nonce)
+        token = config['weixin']['token'] # user supplied
+        
+        logger.info("get signature: %s, echostr: %s, timestamp: %s, nonce: %s", signature, echostr, timestamp, nonce)
            
-        conf = WechatConf(
-            token='weixin',
-            appid='wx2033ac8b479c9fa0',
-            appsecret='0adc2c7ab0764d402a0f33840e1eff49',
-        )
-
-        wechat_instance = WechatBasic(conf=conf)
-        if wechat_instance.check_signature(signature=signature, timestamp=timestamp, nonce=nonce):
-            logger.info('signature verification success.')
+        try:
+            check_signature(token, signature, timestamp, nonce)
+            logger.info('WeChat signature, OK.')
             self.write(echostr)
-        else:
-            raise tornado.web.HTTPError(403, "invalid signature")
+        except InvalidSignatureException:
+            raise tornado.web.HTTPError(403, "invalid WeChat signature")
+
+    async def post(self):
+        """Server responses to a client jssdk request.
+
+        Args:
+            url: a client request url
+        
+        Returns:
+            The signature, timestamp, noncestr and appid
+        """
+        data = json.loads(self.request.body)
+        logger.debug('authentication request from : %s', data['url'])
+
+        appId = config['weixin']['appId']
+        appSecret = config['weixin']['appSecret']
+
+        # sign it
+        s = Sign(appId, appSecret)
+        resp = s.get_jsapi_signature(data['url'])
+
+        self.write(json.dumps(resp))
 
 
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/weixin", WeixinHandler)
+            (r"/api/weixin/verify", WeixinHandler),
+            (r"/api/weixin/signature", WeixinHandler)
         ]
         settings = dict(
             xsrf_cookies=False,
@@ -94,10 +119,12 @@ class Application(tornado.web.Application):
 
 async def main():
 
-    app = Application()
-    app.listen(options.port)
+    port = config['server']['port']
 
-    logger.info(f"http://127.0.0.1:{ options.port }/")
+    app = Application()
+    app.listen(port)
+
+    logger.info(f"http://127.0.0.1:{ port }")
     logger.info("Press Ctrl+C to quit")
 
     # In this demo the server will simply run until interrupted

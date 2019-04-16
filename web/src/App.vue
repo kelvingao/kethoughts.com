@@ -1,18 +1,20 @@
-<template lang='pug'>
+<template lang="pug">
   #app
-    h1 Hello, World!
+    top
+    router-view
 </template>
 
 <script>
-
+import top from '@/components/layout/header.vue'
 export default {
   name: "app",
   components: {
-   
+    top,
   }
 };
 </script>
 
 <style lang="scss">
+@import '@/sass/app.scss';
 
 </style>

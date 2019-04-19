@@ -4,6 +4,14 @@ appName: kethoughts.com
 
 server:
   port: 5000
+  secret: jwt_auth_secret_key
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  database: kethoughts_db
+  user: kethoughts_user
+  password: kethoughts_pass
 
 weixin:
   appId: wx2033ac8b479c9fa0

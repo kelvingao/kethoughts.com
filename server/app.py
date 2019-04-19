@@ -24,8 +24,11 @@
 import tornado.ioloop
 import tornado.web
 import tornado.locks
-import hashlib
 import json
+import jwt
+import aiomysql
+import bcrypt
+import datetime
 
 from wx.sign import Sign
 from wechatpy.utils import check_signature
@@ -40,11 +43,85 @@ class NoResultError(Exception):
     pass
 
 
+async def maybe_create_tables(db):
+    try:
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT COUNT(*) FROM posts LIMIT 1")
+                await cur.fetchone()
+    except aiomysql.ProgrammingError:
+        with open("schema.sql") as f:
+            schema = f.read()
+        async with db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(schema)
+
+
+class Application(tornado.web.Application):
+    def __init__(self, db):
+        self.db = db
+        handlers = [
+            (r"/api/auth/login", LoginHandler),
+            (r"/api/weixin/verify", WeixinHandler),
+            (r"/api/weixin/signature", WeixinHandler),
+        ]
+        settings = dict(
+            xsrf_cookies=False,
+            debug=True,
+        )
+        super(Application, self).__init__(handlers, **settings)
+
+
 class BaseHandler(tornado.web.RequestHandler):
+    def row_to_obj(self, row, cur):
+        """Convert a SQL row to an object supporting dict and attribute access."""
+        obj = tornado.util.ObjectDict()
+        for val, desc in zip(row, cur.description):
+            # logger.debug(desc)
+            obj[desc[0]] = val
+        return obj
+
+    async def execute(self, stmt, *args):
+        """Execute a SQL statement.
+
+        Must be called with ``await self.execute(...)``
+        """
+        async with self.application.db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(stmt, args)
+
+    async def query(self, stmt, *args):
+        """Query for a list of results.
+
+        Typical usage::
+
+            results = await self.query(...)
+
+        Or::
+
+            for row in await self.query(...)
+        """
+        async with self.application.db.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(stmt, args)
+                return [self.row_to_obj(row, cur) for row in await cur.fetchall()]
+
+    async def queryone(self, stmt, *args):
+        """Query for exactly one result.
+
+        Raises NoResultError if there are no results, or ValueError if
+        there are more than one.
+        """
+        results = await self.query(stmt, *args)
+        if len(results) == 0:
+            raise NoResultError()
+        elif len(results) > 1:
+            raise ValueError("Expected 1 result, got %d" % len(results))
+        return results[0]
+
     def set_default_headers(self):
-        """
-        response the right CORS headers
-        """
+        """Response with right CORS headers."""
+
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
 
@@ -52,6 +129,44 @@ class BaseHandler(tornado.web.RequestHandler):
         # no body
         self.set_status(204)
         self.finish()
+
+
+class LoginHandler(BaseHandler):
+    async def post(self):
+        """Login authentification."""
+        data = json.loads(self.request.body)
+        logger.info('%s: login request...', __class__.__name__)
+
+        try:
+            user = await self.queryone(
+                "SELECT * FROM kt_users WHERE email = %s", data['email']
+            )
+            logger.info('%s: user found...', __class__.__name__)
+        except NoResultError:
+            raise tornado.web.HTTPError(401, "email not found")
+
+        hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
+            None,
+            bcrypt.hashpw,
+            tornado.escape.utf8(data['password']),
+            tornado.escape.utf8(user.password),
+        )
+        hashed_password = tornado.escape.to_unicode(hashed_password)
+
+        if hashed_password == user.password:
+            encoded_jwt = jwt.encode({
+                'user': {'id': user.id, 'name': user.name},
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)},
+                config['server']['secret'],
+                algorithm='HS256'
+            )
+            resp = {
+                'token': str(encoded_jwt, encoding='utf-8'),
+            }
+            self.write(resp)
+
+        else:
+            raise tornado.web.HTTPError(401, "password error")
 
 
 class WeixinHandler(BaseHandler):
@@ -63,7 +178,7 @@ class WeixinHandler(BaseHandler):
             echostr: a random string
             timestamp: time stamp
             nonce:  a random number
-        
+
         Returns:
             The echostr
         """
@@ -71,13 +186,13 @@ class WeixinHandler(BaseHandler):
         echostr = self.get_argument("echostr")
         timestamp = self.get_argument("timestamp")
         nonce = self.get_argument("nonce")
-        token = config['weixin']['token'] # user supplied
-        
-        logger.info("get signature: %s, echostr: %s, timestamp: %s, nonce: %s", signature, echostr, timestamp, nonce)
-           
+        token = config['weixin']['token']  # user supplied
+
+        logger.info("%s: WeChat signature verification request...", __class__.__name__)
+
         try:
             check_signature(token, signature, timestamp, nonce)
-            logger.info('WeChat signature, OK.')
+            logger.info('%s: WeChat signature, OK.', __class__.__name__)
             self.write(echostr)
         except InvalidSignatureException:
             raise tornado.web.HTTPError(403, "invalid WeChat signature")
@@ -87,12 +202,12 @@ class WeixinHandler(BaseHandler):
 
         Args:
             url: a client request url
-        
+
         Returns:
             The signature, timestamp, noncestr and appid
         """
         data = json.loads(self.request.body)
-        logger.debug('authentication request from : %s', data['url'])
+        logger.debug('%s: signature request from : %s', __class__.__name__, data['url'])
 
         appId = config['weixin']['appId']
         appSecret = config['weixin']['appSecret']
@@ -104,34 +219,30 @@ class WeixinHandler(BaseHandler):
         self.write(json.dumps(resp))
 
 
-class Application(tornado.web.Application):
-    def __init__(self):
-        handlers = [
-            (r"/api/weixin/verify", WeixinHandler),
-            (r"/api/weixin/signature", WeixinHandler)
-        ]
-        settings = dict(
-            xsrf_cookies=False,
-            debug=True,
-        )
-        super(Application, self).__init__(handlers, **settings)
-
-
 async def main():
 
-    port = config['server']['port']
+    # Create the global connection pool.
+    async with aiomysql.create_pool(
+        host=config['mysql']['host'],
+        port=config['mysql']['port'],
+        user=config['mysql']['user'],
+        password=config['mysql']['password'],
+        db=config['mysql']['database'],
+    ) as db:
+        await maybe_create_tables(db)
 
-    app = Application()
-    app.listen(port)
+        port = config['server']['port']
+        app = Application(db)
+        app.listen(port)
 
-    logger.info(f"http://127.0.0.1:{ port }")
-    logger.info("Press Ctrl+C to quit")
+        logger.info(f"http://127.0.0.1:{ port }")
+        logger.info("Press Ctrl+C to quit")
 
-    # In this demo the server will simply run until interrupted
-    # with Ctrl-C, but if you want to shut down more gracefully,
-    # call shutdown_event.set().
-    shutdown_event = tornado.locks.Event()
-    await shutdown_event.wait()
+        # In this demo the server will simply run until interrupted
+        # with Ctrl-C, but if you want to shut down more gracefully,
+        # call shutdown_event.set().
+        shutdown_event = tornado.locks.Event()
+        await shutdown_event.wait()
 
 
 if __name__ == "__main__":

@@ -17,6 +17,12 @@ Vue.use(Buefy, {
 
 
 /*--------------------------------------------------------------
+Custom components
+--------------------------------------------------------------*/
+import Login from '@/components/pages/login'
+
+
+/*--------------------------------------------------------------
 Vue Router
 --------------------------------------------------------------*/
 import VueRouter from 'vue-router'
@@ -26,6 +32,7 @@ const router = new VueRouter({
   linkActiveClass: 'is-active',
   mode: 'history',
   routes: [
+    { path: '/login', component: Login },
   ]
 });
 

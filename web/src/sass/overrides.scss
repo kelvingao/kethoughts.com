@@ -1,0 +1,10 @@
+/*--------------------------------------------------------------
+Text Overrides
+--------------------------------------------------------------*/
+.is-muted {
+    color: $grey-light !important;
+}
+
+a.is-muted:hover{
+    color: $grey !important;
+}

@@ -36,7 +36,7 @@
                 router-link.button.is-primary.is-inverted(to='/login') #[strong Login]
 
             .navbar-item(v-else).has-dropdown.is-hoverable
-              .navbar-link Hey, Kelvingao
+              .navbar-link Hey, {{ loggedInUser.name }}
               .navbar-dropdown.is-left
                 router-link.navbar-item(to='/profile')
                   b-icon.m-r-5(icon='user-circle')
@@ -65,9 +65,18 @@ export default {
   },
   computed: {
     ...mapGetters([
-      'isAuthenticated'
+      'isAuthenticated',
+      'loggedInUser'
     ])
   },
+  created() {
+    setInterval(() => this.$store.dispatch('AUTH_INSPECT_TOKEN'), 60 * 1000)
+  },
+  methods: {
+    logout () {
+      this.$store.dispatch('AUTH_LOGOUT')
+    }
+  }
 }
 </script>
 

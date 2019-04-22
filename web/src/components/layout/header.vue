@@ -13,7 +13,7 @@
 
         .navbar-menu(:class="{ 'is-active' : showNav }")
           .navbar-start
-            router-link.navbar-item.is-tab(to='/')
+            router-link.navbar-item.is-tab(to='/home')
               b-icon.m-r-5(icon="home") 
               | Home
             router-link.navbar-item.is-tab(to='/tutorials')
@@ -44,7 +44,7 @@
                 router-link.navbar-item(to='/notifications')
                   b-icon.m-r-5(icon='bell')
                   | Notifications
-                router-link.navbar-item(to="/admin")
+                router-link.navbar-item(to="/manage")
                   b-icon.m-r-5(icon='cog')
                   | Manage
                 hr.navbar-divider

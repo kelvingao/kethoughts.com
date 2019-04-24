@@ -37,7 +37,7 @@ export default {
       const { email, password } = this.form
       this.$store.dispatch('AUTH_REQUEST', { email, password })
         .then(() => {
-          this.$router.push('/')
+          this.$router.push('/manage')
         })
         .catch((e) => {
           alert(e)
@@ -52,7 +52,7 @@ export default {
 
 @media screen and (min-width: 1087px) {
 
-  .column {
+  #login {
     margin-top: 100px;
   }
 

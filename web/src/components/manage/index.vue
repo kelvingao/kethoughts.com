@@ -1,13 +1,12 @@
 <template lang='pug'>
   #manage
     .columns.is-marginless.is-fullheight
-      //- manage panel
+      //- manage sidebar
       aside.is-narrow-mobile.is-fullheight.section.is-hidden-mobile
         manage-panel
       //- manage content
-      .column
-        breadcrumb-widget
-        hr
+      .column.manage-content
+        breadcrumb-widget.m-b-20
         router-view
 
 </template>
@@ -28,6 +27,9 @@ export default {
 
 aside {
   height: 100vh;
+}
+
+.manage-content {
   background-color: whitesmoke;
 }
 </style>

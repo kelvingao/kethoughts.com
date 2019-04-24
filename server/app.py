@@ -47,7 +47,7 @@ async def maybe_create_tables(db):
     try:
         async with db.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("SELECT COUNT(*) FROM posts LIMIT 1")
+                await cur.execute("SELECT COUNT(*) FROM kt_posts LIMIT 1")
                 await cur.fetchone()
     except aiomysql.ProgrammingError:
         with open("schema.sql") as f:
@@ -62,6 +62,7 @@ class Application(tornado.web.Application):
         self.db = db
         handlers = [
             (r"/api/auth/login", LoginHandler),
+            (r"/api/users", UsersHandler),
             (r"/api/weixin/verify", WeixinHandler),
             (r"/api/weixin/signature", WeixinHandler),
         ]
@@ -77,7 +78,6 @@ class BaseHandler(tornado.web.RequestHandler):
         """Convert a SQL row to an object supporting dict and attribute access."""
         obj = tornado.util.ObjectDict()
         for val, desc in zip(row, cur.description):
-            # logger.debug(desc)
             obj[desc[0]] = val
         return obj
 
@@ -141,7 +141,7 @@ class LoginHandler(BaseHandler):
             user = await self.queryone(
                 "SELECT * FROM kt_users WHERE email = %s", data['email']
             )
-            logger.info('%s: user found...', __class__.__name__)
+            logger.info('%s: user found', __class__.__name__)
         except NoResultError:
             raise tornado.web.HTTPError(401, "email not found")
 
@@ -156,7 +156,7 @@ class LoginHandler(BaseHandler):
         if hashed_password == user.password:
             encoded_jwt = jwt.encode({
                 'user': {'id': user.id, 'name': user.name},
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)},
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60)},
                 config['server']['secret'],
                 algorithm='HS256'
             )
@@ -167,6 +167,26 @@ class LoginHandler(BaseHandler):
 
         else:
             raise tornado.web.HTTPError(401, "password error")
+
+
+class datetimeJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.timestamp()
+        return json.JSONEncoder.default(self, obj)
+
+
+class UsersHandler(BaseHandler):
+    async def get(self):
+        """ Get all users information."""
+
+        users = await self.query(
+            "SELECT U.id, U.name, U.email, R.role_name, U.created, U.last_ip, U.login_count FROM kt_users U, kt_roles R;"
+        )
+        if not users:
+            return
+
+        self.write(json.dumps(users, cls=datetimeJSONEncoder))
 
 
 class WeixinHandler(BaseHandler):

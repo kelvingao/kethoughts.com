@@ -23,7 +23,7 @@ import Home from '@/components/pages/home'
 import Login from '@/components/pages/login'
 import Manage from '@/components/manage/index'
 import Analytics from '@/components/manage/analytics'
-import Users from '@/components/manage/users'
+import Users from '@/components/manage/users/index'
 
 
 /*--------------------------------------------------------------

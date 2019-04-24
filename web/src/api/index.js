@@ -15,15 +15,29 @@ REST API Requester
  */
 postAuthorization(auth) {
   return new Promise((resolve, reject) => {
-    axios({
-      method: 'post',
-      url: process.env.VUE_APP_BASE_URI + "api/auth/login",
-      data: auth
-    }).then(resp => {
-      resolve(resp)
-    }).catch(err => {
-      reject(err)
-    })
+    axios.post(process.env.VUE_APP_BASE_URI + "api/auth/login", auth)
+      .then(resp => {
+        resolve(resp.data)
+      }).catch(err => {
+        reject(err)
+      })
+  })
+},
+
+/**
+ * Get users info request to backend server.
+ *
+ * @return { Promise }
+ */
+getUsers() {
+  return new Promise((resolve, reject) => {
+    axios.get(process.env.VUE_APP_BASE_URI + "api/users")
+      .then(resp => {
+        resolve(resp.data)
+      })
+      .catch(err => {
+        reject(err)
+      })
   })
 },
 

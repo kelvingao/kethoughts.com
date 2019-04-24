@@ -32,18 +32,22 @@ SET foreign_key_checks = 0;
 
 CREATE TABLE IF NOT EXISTS `kt_users` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `role_id` tinyint unsigned DEFAULT 1,
   `email` varchar(100) NOT NULL,
   `name` varchar(50) NOT NULL,
   `password` varchar(64) NOT NULL,
   `created` datetime NOT NULL,
+  `login_count` smallint(5) unsigned DEFAULT 0,
+  `last_ip` varchar(20) DEFAULT '0.0.0.0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `key` (`email`),
-  KEY `created` (`created`)
+  KEY `created` (`created`),
+  CONSTRAINT `role_users` FOREIGN KEY (`role_id`) REFERENCES `kt_roles` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `kt_posts` (
   `id` int(11) unsigned AUTO_INCREMENT,
-  `author_id` int(11) unsigned DEFAULT 0,
+  `author_id` int(11) unsigned DEFAULT 1,
   `slug` varchar(100),
   `title` varchar(100),
   `excerpt` text,
@@ -57,7 +61,36 @@ CREATE TABLE IF NOT EXISTS `kt_posts` (
   UNIQUE KEY `key` (`slug`),
   KEY `created` (`created`),
   KEY `modified` (`modified`),
-  CONSTRAINT `post_user` FOREIGN KEY (`author_id`) REFERENCES `kt_users` (`id`)
+  CONSTRAINT `user_posts` FOREIGN KEY (`author_id`) REFERENCES `kt_users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `kt_roles` (
+  `id` tinyint unsigned NOT NULL AUTO_INCREMENT,
+  `role_name` varchar(20) NOT NULL,
+  `role_desc` varchar(200) NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `key` (`name`),
+  KEY `created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `kt_permissions` (
+  `id` tinyint unsigned NOT NULL AUTO_INCREMENT,
+  `permission_name` varchar(20) NOT NULL,
+  `permission_desc` varchar(200) NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `key` (`name`),
+  KEY `created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `kt_roles_permissions` (
+  `id` tinyint unsigned NOT NULL AUTO_INCREMENT,
+  `role_id` tinyint unsigned NOT NULL,
+  `permission_id` tinyint unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `role_permissions` FOREIGN KEY (`role_id`) REFERENCES `kt_roles` (`id`),
+  CONSTRAINT `permisson_roles` FOREIGN KEY (`permission_id`) REFERENCES `kt_permissions` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 SET foreign_key_checks = 1;

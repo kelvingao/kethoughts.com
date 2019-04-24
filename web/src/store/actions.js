@@ -19,7 +19,7 @@ AUTH_REQUEST:({ commit }, auth) => {
     commit('AUTH_REQUEST')  // 'loading' state
     api.postAuthorization(auth)
       .then(resp => {
-        const token = resp.data.token
+        const token = resp.token
         localStorage.setItem('Authorization', token) // store the token in localstorage
         commit('AUTH_SUCCESS', token)  // 'success' state
         resolve(resp)

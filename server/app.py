@@ -1,4 +1,3 @@
-
 # MIT License
 
 # Copyright (c) 2019 Kelvin Gao
@@ -34,6 +33,7 @@ from wx.sign import Sign
 from wechatpy.utils import check_signature
 from wechatpy.exceptions import InvalidSignatureException
 from utils import createLogger, config
+from auth import authenticated
 
 # Configure logging
 logger = createLogger(__name__)
@@ -63,6 +63,7 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/api/auth/login", LoginHandler),
             (r"/api/users", UsersHandler),
+            (r"/api/posts", PostsHandler),
             (r"/api/weixin/verify", WeixinHandler),
             (r"/api/weixin/signature", WeixinHandler),
         ]
@@ -89,6 +90,7 @@ class BaseHandler(tornado.web.RequestHandler):
         async with self.application.db.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(stmt, args)
+                await conn.commit()
 
     async def query(self, stmt, *args):
         """Query for a list of results.
@@ -123,7 +125,7 @@ class BaseHandler(tornado.web.RequestHandler):
         """Response with right CORS headers."""
 
         self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
     def options(self):
         # no body
@@ -143,7 +145,7 @@ class LoginHandler(BaseHandler):
             )
             logger.info('%s: user found', __class__.__name__)
         except NoResultError:
-            raise tornado.web.HTTPError(401, "email not found")
+            raise tornado.web.HTTPError(401)
 
         hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
             None,
@@ -166,7 +168,7 @@ class LoginHandler(BaseHandler):
             self.write(resp)
 
         else:
-            raise tornado.web.HTTPError(401, "password error")
+            raise tornado.web.HTTPError(401)
 
 
 class datetimeJSONEncoder(json.JSONEncoder):
@@ -187,6 +189,60 @@ class UsersHandler(BaseHandler):
             return
 
         self.write(json.dumps(users, cls=datetimeJSONEncoder))
+
+
+class PostsHandler(BaseHandler):
+    @authenticated
+    async def post(self):
+        id = self.get_argument("id", None)
+        # retrieve parameters
+        data = json.loads(self.request.body)
+
+        slug = data["slug"]
+        text = data["content"]["rendered"]
+        title = data["title"]
+        excerpt = data["content"]["excerpt"]
+
+        if id:
+            logger.info('edit post...')
+            try:
+                await self.queryone(
+                    "SELECT * FROM kt_posts WHERE id = %s", int(id)
+                )
+            except NoResultError:
+                raise tornado.web.HTTPError(404)
+
+            await self.execute(
+                "UPDATE kt_posts SET title = %s, content = %s, slug = %s "
+                "WHERE id = %s",
+                title,
+                text,
+                slug,
+                int(id),
+            )
+        else:
+            if not slug:
+                raise tornado.web.HTTPError(412)
+            while True:
+                e = await self.query("SELECT * FROM kt_posts WHERE slug = %s", slug)
+                if not e:
+                    logger.info('%s: create new post...', __class__.__name__)
+                    break
+                logger.warn('%s: post slug duplicated...', __class__.__name__)
+                slug += "-2"  # duplicate slug
+            await self.execute(
+                "INSERT INTO kt_posts (author_id,title,slug,content,excerpt,created,modified)"
+                "VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                self.current_user['id'],
+                title,
+                slug,
+                text,
+                excerpt
+            )
+            logger.info('%s: new post created', __class__.__name__)
+
+            resp = {'result': 'ok', 'content': 'post created'}
+            self.write(resp)
 
 
 class WeixinHandler(BaseHandler):
@@ -215,7 +271,7 @@ class WeixinHandler(BaseHandler):
             logger.info('%s: WeChat signature, OK.', __class__.__name__)
             self.write(echostr)
         except InvalidSignatureException:
-            raise tornado.web.HTTPError(403, "invalid WeChat signature")
+            raise tornado.web.HTTPError(403)
 
     async def post(self):
         """Server responses to a client jssdk request.

@@ -1,8 +1,7 @@
 <template lang="pug">
   #app
     top
-    .app-content
-      router-view
+    router-view
     bottom
 </template>
 
@@ -21,9 +20,5 @@ export default {
 
 <style lang="scss">
 @import '@/sass/app.scss';
-
-.app-content {
-  height: 100vh;
-}
 
 </style>

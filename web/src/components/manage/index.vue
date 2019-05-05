@@ -13,7 +13,7 @@
 
 <script>
 import ManagePanel from '@/components/manage/sidebar';
-import BreadcrumbWidget from '@/components/widgets/breadcrumb';
+import BreadcrumbWidget from '@/components/widgets/trailWidget';
 
 export default {
   components:{
@@ -23,7 +23,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 
 aside {
   height: 100vh;

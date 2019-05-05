@@ -13,7 +13,7 @@
 
         .navbar-menu(:class="{ 'is-active' : showNav }")
           .navbar-start
-            router-link.navbar-item.is-tab(to='/home')
+            router-link.navbar-item.is-tab(to='/posts')
               b-icon.m-r-5(icon="home") 
               | Home
             router-link.navbar-item.is-tab(to='/tutorials')
@@ -32,7 +32,7 @@
           .navbar-end
             .navbar-item(v-if="!isAuthenticated")
               .buttons
-                router-link.button.is-primary.is-outlined(to='/register') #[strong SignUp]
+                router-link.button.is-primary.is-outlined(to='/signup') #[strong SignUp]
                 router-link.button.is-primary.is-inverted(to='/login') #[strong Login]
 
             .navbar-item(v-else).has-dropdown.is-hoverable
@@ -48,7 +48,7 @@
                   b-icon.m-r-5(icon='cog')
                   | Manage
                 hr.navbar-divider
-                router-link.navbar-item(@click.native="logout" to='/home')
+                router-link.navbar-item(@click.native="logout" to='/posts')
                   b-icon.m-r-5(icon='sign-out-alt')
                   | Logout
 

@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `kt_posts` (
   `type` tinyint unsigned DEFAULT 1,
   `comment_count` bigint unsigned DEFAULT 0,
   `created` datetime NOT NULL,
-  `modified` datetime NOT NULL,
+  `modified` timestamp default current_timestamp on update current_timestamp,
   PRIMARY KEY (`id`),
   UNIQUE KEY `key` (`slug`),
   KEY `created` (`created`),

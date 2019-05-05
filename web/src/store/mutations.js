@@ -1,7 +1,7 @@
 export default {
 
 /*--------------------------------------------------------------
-Authentication status
+Authentication mutations
 --------------------------------------------------------------*/
 
 AUTH_REQUEST: (state) => {

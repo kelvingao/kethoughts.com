@@ -90,7 +90,6 @@ class BaseHandler(tornado.web.RequestHandler):
         async with self.application.db.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(stmt, args)
-                await conn.commit()
 
     async def query(self, stmt, *args):
         """Query for a list of results.
@@ -126,6 +125,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS')
 
     def options(self):
         # no body
@@ -192,6 +192,40 @@ class UsersHandler(BaseHandler):
 
 
 class PostsHandler(BaseHandler):
+    async def get(self):
+        id = self.get_argument("id", None)
+        slug = self.get_argument("slug", None)
+        post = None
+
+        if id:
+            post = await self.queryone("SELECT * FROM kt_posts WHERE id = %s", int(id))
+            logger.info('%s: get post of id: %s', __class__.__name__, id)
+            self.write(json.dumps(post, cls=datetimeJSONEncoder))
+
+        elif slug:
+            post = await self.queryone("SELECT * FROM kt_posts WHERE slug = %s", slug)
+            logger.info('%s: get post of slug : %s', __class__.__name__, slug)
+            self.write(json.dumps(post, cls=datetimeJSONEncoder))
+
+        else:
+            posts = await self.query(
+                "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
+            )
+            if not posts:
+                return
+            logger.info('%s: get all posts...', __class__.__name__)
+            self.write(json.dumps(posts, cls=datetimeJSONEncoder))
+
+    @authenticated
+    async def delete(self):
+        id = self.get_argument("id")
+        logger.info('%s: delete post of id : %s', __class__.__name__, id)
+
+        if id:
+            await self.execute("DELETE FROM kt_posts WHERE id = %s", int(id))
+        else:
+            raise tornado.web.HTTPError(412)
+
     @authenticated
     async def post(self):
         id = self.get_argument("id", None)
@@ -199,9 +233,9 @@ class PostsHandler(BaseHandler):
         data = json.loads(self.request.body)
 
         slug = data["slug"]
-        text = data["content"]["rendered"]
+        text = data["content"]
         title = data["title"]
-        excerpt = data["content"]["excerpt"]
+        excerpt = data["excerpt"]
 
         if id:
             logger.info('edit post...')
@@ -213,13 +247,16 @@ class PostsHandler(BaseHandler):
                 raise tornado.web.HTTPError(404)
 
             await self.execute(
-                "UPDATE kt_posts SET title = %s, content = %s, slug = %s "
+                "UPDATE kt_posts SET title = %s, content = %s, slug = %s"
                 "WHERE id = %s",
                 title,
                 text,
                 slug,
                 int(id),
             )
+
+            resp = {'result': 'ok', 'content': 'edit done'}
+            self.write(resp)
         else:
             if not slug:
                 raise tornado.web.HTTPError(412)
@@ -304,6 +341,7 @@ async def main():
         user=config['mysql']['user'],
         password=config['mysql']['password'],
         db=config['mysql']['database'],
+        autocommit=True,
     ) as db:
         await maybe_create_tables(db)
 

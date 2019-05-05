@@ -32,7 +32,6 @@ export default {
   methods: {
     onSubmit(evt) {
       evt.preventDefault()
-    //   alert(JSON.stringify(this.form))
 
       const { email, password } = this.form
       this.$store.dispatch('AUTH_REQUEST', { email, password })

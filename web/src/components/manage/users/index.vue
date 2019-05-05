@@ -17,7 +17,7 @@
           td {{ user.name }}
           td {{ user.email }}
           td {{ user.role_name }}
-          td {{ timestamp2str(user.created) }}
+          td {{ user.created | formatDate }}
           td {{ user.last_ip }}
           td {{ user.login_count }}
           td
@@ -36,29 +36,12 @@ export default {
     }
   },
 
-  beforeMount() {
-    api.getUsers().then((resp) => {
-      console.log(resp)
-      this.users = resp
+  beforeCreate() {
+    api.getUsers().then((res) => {
+      this.users = res.data
     })
   },
 
-  methods: {
-    timestamp2str(ts) {
-      let datetime = new Date();
-      datetime.setTime(ts * 1000);
-
-      let year = datetime.getFullYear();
-      let month = datetime.getMonth() + 1;
-      let day = datetime.getDate();
-
-      let hour = datetime.getHours();
-      let minute = datetime.getMinutes();
-      let second = datetime.getSeconds();
-
-      return year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second;
-    }
-  }
 }
 </script>
 

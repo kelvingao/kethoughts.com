@@ -9,21 +9,21 @@
         
     p.menu-label.is-hidden-touch
       b-icon.m-r-5(icon="file-video" size="is-normal")
-      | CMS Content
+      | Content
     ul.menu-list
       li
-        router-link(to='/manage/posts') Blog Posts
-        a.has-submenu Roles &amp; Permissions
-        ul.submenu
-          li
-            router-link(to='/manage/roles') Roles
-            router-link(to='/manage/permissons') Permissions
+        router-link(to='/manage/posts') Manage Posts
 
     p.menu-label.is-hidden-touch
       b-icon.m-r-5(icon="user-cog" size="is-normal")
       | Administration
     ul.menu-list
       li
+        a.has-submenu Roles &amp; Permissions
+        ul.submenu
+          li
+            router-link(to='/manage/roles') Roles
+            router-link(to='/manage/permissons') Permissions
         router-link(to='/manage/users') Manage Users
 </template>
 

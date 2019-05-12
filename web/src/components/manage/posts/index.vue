@@ -62,14 +62,13 @@ export default {
   data() {
     return {
       numPosts: 0,
-      showIndexPage: this.$route.path == '/manage/posts' ? true : false,
+      showIndexPage: true,
       posts:[]
     }
   },
   watch: {
     '$route' () {
-      this.showIndexPage = this.$route.path == '/manage/posts' ? true : false
-      this.updateList()
+      this.$route.path == '/manage/posts' ? ( this.showIndexPage = true, this.updateList()) : this.showIndexPage = false
     },
   },
 
@@ -81,7 +80,7 @@ export default {
     updateList() {
       api.getPosts().then((res) => {
         this.posts = res.data
-        this.numPosts = res.length 
+        this.numPosts = this.posts.length 
       })
     },
 
@@ -95,13 +94,15 @@ export default {
           size: 'is-normal',
           onConfirm: () => {
             api.deletePost(id).then(res => {
-              this.$toast.open('Post deleted!')
+              this.$toast.open({
+                message: 'Post deleted!',
+                type: 'is-primary'
+              })
               this.updateList()
             })
             .catch(err => {
-              alert(err)
+              console.error(err)
             })
-              
           }
       })
     }

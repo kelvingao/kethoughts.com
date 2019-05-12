@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS `kt_posts` (
   `excerpt` text,
   `content` longtext,
   `status` tinyint unsigned DEFAULT 1,
+  `featured_image` varchar(100),
   `type` tinyint unsigned DEFAULT 1,
   `comment_count` bigint unsigned DEFAULT 0,
   `created` datetime NOT NULL,

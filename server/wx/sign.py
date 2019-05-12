@@ -20,15 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
 import random
 import string
 import time
 
 from wechatpy import WeChatClient
 from wechatpy.client.api import WeChatJSAPI
-from wechatpy.session.memorystorage import MemoryStorage
-
 from utils import createLogger
 
 # Configure logging
@@ -57,11 +54,12 @@ class Sign:
             resp['signature'] = signature
             resp['timestamp'] = timestamp
             resp['noncestr'] = noncestr
+            resp['appid'] = self.appId
 
             return resp
         except Exception as e:
             logger.error('WeChat sign failed. %s', e)
-            
+
     def __create_nonce_str(self):
         return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(15))
 

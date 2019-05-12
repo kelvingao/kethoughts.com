@@ -14,6 +14,10 @@ mysql:
   password: kethoughts_pass
 
 weixin:
-  appId: wx2033ac8b479c9fa0
-  appSecret: 0adc2c7ab0764d402a0f33840e1eff49
+  appId: your_weixin_appid
+  appSecret: your_weixin_appsecret
   token: weixin
+
+qiniu:
+  accesskey: your_qiniu_accesskey
+  secretkey: your_qiniu_secretkey

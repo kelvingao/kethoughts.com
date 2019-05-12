@@ -34,6 +34,7 @@ from wechatpy.utils import check_signature
 from wechatpy.exceptions import InvalidSignatureException
 from utils import createLogger, config
 from auth import authenticated
+from qiniu import Auth
 
 # Configure logging
 logger = createLogger(__name__)
@@ -66,6 +67,7 @@ class Application(tornado.web.Application):
             (r"/api/posts", PostsHandler),
             (r"/api/weixin/verify", WeixinHandler),
             (r"/api/weixin/signature", WeixinHandler),
+            (r"/api/qiniu", QiniuHandler)
         ]
         settings = dict(
             xsrf_cookies=False,
@@ -228,14 +230,15 @@ class PostsHandler(BaseHandler):
 
     @authenticated
     async def post(self):
-        id = self.get_argument("id", None)
         # retrieve parameters
         data = json.loads(self.request.body)
 
+        id = data["id"]
         slug = data["slug"]
         text = data["content"]
         title = data["title"]
         excerpt = data["excerpt"]
+        featured_image = data["featured_image"]
 
         if id:
             logger.info('edit post...')
@@ -247,11 +250,12 @@ class PostsHandler(BaseHandler):
                 raise tornado.web.HTTPError(404)
 
             await self.execute(
-                "UPDATE kt_posts SET title = %s, content = %s, slug = %s"
+                "UPDATE kt_posts SET title = %s, content = %s, slug = %s, featured_image = %s"
                 "WHERE id = %s",
                 title,
                 text,
                 slug,
+                featured_image,
                 int(id),
             )
 
@@ -268,13 +272,14 @@ class PostsHandler(BaseHandler):
                 logger.warn('%s: post slug duplicated...', __class__.__name__)
                 slug += "-2"  # duplicate slug
             await self.execute(
-                "INSERT INTO kt_posts (author_id,title,slug,content,excerpt,created,modified)"
-                "VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO kt_posts (author_id,title,slug,content,excerpt,featured_image,created,modified)"
+                "VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 self.current_user['id'],
                 title,
                 slug,
                 text,
-                excerpt
+                excerpt,
+                featured_image
             )
             logger.info('%s: new post created', __class__.__name__)
 
@@ -330,6 +335,28 @@ class WeixinHandler(BaseHandler):
         resp = s.get_jsapi_signature(data['url'])
 
         self.write(json.dumps(resp))
+
+
+class QiniuHandler(BaseHandler):
+    async def get(self):
+        bucket_name = self.get_argument("bucket")
+        key = self.get_argument("filename")
+
+        access_key = config['qiniu']['accesskey']
+        secret_key = config['qiniu']['secretkey']
+        q = Auth(access_key, secret_key)
+
+        # put policy
+        # https://developer.qiniu.com/kodo/manual/1206/put-policy
+        policy = {}
+        logger.info('%s: upload token request...', __class__.__name__)
+        token = q.upload_token(
+            bucket_name,
+            key,
+            3600,  # expired time: 1 hour
+            policy)
+
+        self.write(token)
 
 
 async def main():

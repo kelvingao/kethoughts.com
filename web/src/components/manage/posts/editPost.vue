@@ -20,7 +20,8 @@ export default {
         slug: '',
         content: '',
         excerpt: '',
-        featured_image: ''
+        featured_image: '',
+        status: ''
       },
     }
   },

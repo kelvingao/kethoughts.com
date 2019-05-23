@@ -21,4 +21,15 @@ export default {
 <style lang="scss">
 @import '@/sass/app.scss';
 
+html {
+  height: 100%;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  padding-bottom: 6rem;
+  min-height: 100%;
+}
+
 </style>

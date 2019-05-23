@@ -4,7 +4,7 @@ import * as qiniu from 'qiniu-js'
 export default {
 
 /*--------------------------------------------------------------
-Post REST APIs
+Posts REST APIs
 --------------------------------------------------------------*/
 
 /**
@@ -53,9 +53,9 @@ deletePost(id) {
  *
  * @return { Promise }
  */
-getPosts() {
+getPosts(visibility = 'publish') {
   return new Promise((resolve, reject) => {
-    axios.get(process.env.VUE_APP_BASE_URI + "/api/posts")
+    axios.get(process.env.VUE_APP_BASE_URI + "/api/posts?visibility=" + visibility)
       .then(res => {
         resolve(res)
       })
@@ -103,7 +103,7 @@ getPostById(id) {
 
 
 /*--------------------------------------------------------------
-User REST APIs
+Users REST APIs
 --------------------------------------------------------------*/
 
 /**

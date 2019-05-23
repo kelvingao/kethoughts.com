@@ -38,7 +38,7 @@ export default {
  },
  data() {
     return {
-      slug: '',
+      slug: this.slugDefault,
       isEditing: false,
       customSlug:'',
       wasEdited: false,
@@ -63,15 +63,16 @@ export default {
   },
   watch: {
     title:_.debounce(function() {
-      if(this.wasEdited === false) {
-        this.slug = Slug(this.title); // initially generate slug
-
-        // compared with propped slugDefault
-        if (this.slugDefault && !this.wasChecked) {
-          if (this.slug != this.slugDefault) { this.slug = this.slugDefault; this.wasEdited = true;}
-          this.wasChecked = true;
+      /* Check slugDefault first */
+      if(!this.wasChecked) {
+        if(this.slugDefault && this.slugDefault != Slug(this.title)) {
+          this.wasEdited = true;
+          this.slug = this.slugDefault;
         }
+        this.wasChecked = true;
       }
+
+      if(this.wasEdited === false) this.slug = Slug(this.title);
     }, 250),
     slug(val) {
       this.$emit('slug-changed', val);

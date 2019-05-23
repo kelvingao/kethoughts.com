@@ -61,11 +61,8 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss">
 
-#post {
-  height: 100vh;
-}
 </style>
 
 

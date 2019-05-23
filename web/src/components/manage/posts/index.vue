@@ -30,26 +30,24 @@
       table.table.is-narrow(v-if="showIndexPage")
         thead
           tr
-            th id
             th Author
             th Title
-            th Status
             th Created
             th Modified
-            th Type
             th Actions
         tbody
           tr(v-for="post in posts")
-            th {{ post.id }}
             td {{ post.name }}
-            td {{ post.title }}
-            td {{ post.status }}
+            td 
+              router-link(:to="'/posts/' + post.slug" style="text-decoration: underline") {{ post.title }}
+              span(v-if="post.status == 'private'")  — Private
             td {{ post.created | formatDate }}
             td {{ post.modified | formatDate }}
-            td {{ post.type }}
             td
-              router-link.button.is-info.is-outlined.m-r-5(:to="'/manage/posts/edit/' + post.id") Edit
-              button.button.is-danger.is-primary.is-outlined(@click="del(post.id)") Delete
+              button.button.is-small.is-light.m-r-5(@click="edit(post.id)")
+                b-icon(icon="pen" size="is-small")
+              button.button.is-small.is-danger.is-primary(@click="del(post.id)")
+                b-icon(icon="trash-alt" size="is-small")
     router-view
 
 </template>
@@ -62,7 +60,7 @@ export default {
   data() {
     return {
       numPosts: 0,
-      showIndexPage: true,
+      showIndexPage: this.$route.path == '/manage/posts' ? true : false,
       posts:[]
     }
   },
@@ -78,10 +76,14 @@ export default {
   
   methods: {
     updateList() {
-      api.getPosts().then((res) => {
+      api.getPosts('all').then((res) => {
         this.posts = res.data
         this.numPosts = this.posts.length 
       })
+    },
+
+    edit(id) {
+      this.$router.push('/manage/posts/edit/' + id)
     },
 
     del(id) {

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `kt_posts` (
   `title` varchar(100),
   `excerpt` text,
   `content` longtext,
-  `status` tinyint unsigned DEFAULT 1,
+  `status` varchar(20) NOT NULL DEFAULT 'publish', -- one of : publish, future, draft, pending, private
   `featured_image` varchar(100),
   `type` tinyint unsigned DEFAULT 1,
   `comment_count` bigint unsigned DEFAULT 0,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `kt_roles` (
   `role_desc` varchar(200) NOT NULL,
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `key` (`name`),
+  UNIQUE KEY `key` (`role_name`),
   KEY `created` (`created`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `kt_permissions` (
   `permission_desc` varchar(200) NOT NULL,
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `key` (`name`),
+  UNIQUE KEY `key` (`permission_name`),
   KEY `created` (`created`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

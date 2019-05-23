@@ -2,7 +2,7 @@
   footer.footer
     .container
       .has-text-centered
-        p.color Copyright © 2019 Kelvin Gao. All Rights Reserved.
+        p Copyright © 2019 Kelvin Gao. All Rights Reserved.
 </template>
 
 <script>
@@ -11,7 +11,11 @@ export default {}
 
 <style lang="scss" scoped>
 
-.color {
+.footer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
   color: rgb(240,102,102);
 }
 </style>

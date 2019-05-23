@@ -197,6 +197,7 @@ class PostsHandler(BaseHandler):
     async def get(self):
         id = self.get_argument("id", None)
         slug = self.get_argument("slug", None)
+        visibility = self.get_argument("visibility", None)
         post = None
 
         if id:
@@ -210,9 +211,15 @@ class PostsHandler(BaseHandler):
             self.write(json.dumps(post, cls=datetimeJSONEncoder))
 
         else:
-            posts = await self.query(
-                "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
-            )
+            logger.info('self.current_user: %s', self.current_user)
+            if(visibility == 'all'):
+                posts = await self.query(
+                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
+                )
+            else:
+                posts = await self.query(
+                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U WHERE P.status = 'publish' ORDER BY modified DESC"
+                )
             if not posts:
                 return
             logger.info('%s: get all posts...', __class__.__name__)
@@ -239,6 +246,7 @@ class PostsHandler(BaseHandler):
         title = data["title"]
         excerpt = data["excerpt"]
         featured_image = data["featured_image"]
+        status = data["status"]
 
         if id:
             logger.info('edit post...')
@@ -250,12 +258,13 @@ class PostsHandler(BaseHandler):
                 raise tornado.web.HTTPError(404)
 
             await self.execute(
-                "UPDATE kt_posts SET title = %s, content = %s, slug = %s, featured_image = %s"
+                "UPDATE kt_posts SET title = %s, content = %s, slug = %s, featured_image = %s, status = %s"
                 "WHERE id = %s",
                 title,
                 text,
                 slug,
                 featured_image,
+                status,
                 int(id),
             )
 

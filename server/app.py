@@ -211,7 +211,6 @@ class PostsHandler(BaseHandler):
             self.write(json.dumps(post, cls=datetimeJSONEncoder))
 
         else:
-            logger.info('self.current_user: %s', self.current_user)
             if(visibility == 'all'):
                 posts = await self.query(
                     "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
@@ -281,13 +280,14 @@ class PostsHandler(BaseHandler):
                 logger.warn('%s: post slug duplicated...', __class__.__name__)
                 slug += "-2"  # duplicate slug
             await self.execute(
-                "INSERT INTO kt_posts (author_id,title,slug,content,excerpt,featured_image,created,modified)"
-                "VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO kt_posts (author_id,title,slug,content,excerpt,status,featured_image,created,modified)"
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 self.current_user['id'],
                 title,
                 slug,
                 text,
                 excerpt,
+                status,
                 featured_image
             )
             logger.info('%s: new post created', __class__.__name__)

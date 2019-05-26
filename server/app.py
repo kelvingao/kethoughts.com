@@ -208,16 +208,18 @@ class PostsHandler(BaseHandler):
         elif slug:
             post = await self.queryone("SELECT * FROM kt_posts WHERE slug = %s", slug)
             logger.info('%s: get post of slug : %s', __class__.__name__, slug)
+
+            await self.execute("UPDATE kt_posts SET views = views + 1 WHERE slug = %s", slug),
             self.write(json.dumps(post, cls=datetimeJSONEncoder))
 
         else:
             if(visibility == 'all'):
                 posts = await self.query(
-                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
+                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.views, P.created, P.modified FROM kt_posts P, kt_users U ORDER BY modified DESC"
                 )
             else:
                 posts = await self.query(
-                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.created, P.modified FROM kt_posts P, kt_users U WHERE P.status = 'publish' ORDER BY modified DESC"
+                    "SELECT P.id, P.title, P.slug, P.content, U.name, P.status, P.type, P.views, P.created, P.modified FROM kt_posts P, kt_users U WHERE P.status = 'publish' ORDER BY modified DESC"
                 )
             if not posts:
                 return
@@ -257,7 +259,7 @@ class PostsHandler(BaseHandler):
                 raise tornado.web.HTTPError(404)
 
             await self.execute(
-                "UPDATE kt_posts SET title = %s, content = %s, slug = %s, featured_image = %s, status = %s"
+                "UPDATE kt_posts SET title = %s, content = %s, slug = %s, featured_image = %s, status = %s, modified = now()"
                 "WHERE id = %s",
                 title,
                 text,

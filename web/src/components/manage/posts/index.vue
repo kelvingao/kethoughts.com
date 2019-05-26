@@ -32,6 +32,7 @@
           tr
             th Author
             th Title
+            th Views
             th Created
             th Modified
             th Actions
@@ -41,6 +42,7 @@
             td 
               router-link(:to="'/posts/' + post.slug" style="text-decoration: underline") {{ post.title }}
               span(v-if="post.status == 'private'")  — Private
+            td {{ post.views }}
             td {{ post.created | formatDate }}
             td {{ post.modified | formatDate }}
             td
@@ -78,7 +80,7 @@ export default {
     updateList() {
       api.getPosts('all').then((res) => {
         this.posts = res.data
-        this.numPosts = this.posts.length 
+        this.numPosts = this.posts.length
       })
     },
 

@@ -108,22 +108,38 @@
                 .image-section.section-area
                   .card-image(v-if="post.featured_image != ''").p-10
                     figure.image
-                      img(:src='staticdomain + "/" + post.featured_image')
+                      img(:src='staticdomain + "/" + post.featured_image + "?" + Math.random()*100')
 
                 //- SECTION 2: image selection & upload
                 .image-upload-section.section-area
-                  .image-select-button
-                    b-upload(type="file" v-model="selectedFile" ref="imageInput")
-                      .button.is-light(style="background: whitesmoke")
-                        b-icon(icon="upload")
-                        span #[strong Select Image]
-                  .selected-file-name(v-if="selectedFile").p-l-5 {{ selectedFile.name }}
-                  .image-upload-button(v-if="selectedFile")
-                    button(@click.prevent="onUpload(selectedFile)").button.is-primary.is-pulled-right #[strong Upload]
+                  .selected-file-name(v-if="cropperImg").p-l-5 {{ cropperImg.name }}
+                  a.m-l-5(@click='isCropperModalActive = true' style="text-decoration: underline; margin-bottom: 0.5rem;") Setup Image
+
+                  b-modal(:active.sync="isCropperModalActive" :width="750")
+                    .card
+                      .card-content
+                        .cropper-image-input
+                          input(type='file', name='image', accept='image/*', @change='inputImage')
+                        
+                        cropper-widget(
+                          ref='cropper'
+                          :view-mode='1'
+                          :cropperImg='staticdomain + "/" + post.featured_image'
+                        )
+                        
+                        hr
+
+                        .cropper-image-preview
+                          img(:src="cropPreviewImg" width="100%")
+                        
+                        button.button.is-info.m-r-10(@click.prevent='cropImage') #[strong Crop]
+                        button.button.is-info(@click.prevent='rotateImage') #[strong Rotate]
+                        button.button.is-primary.is-pulled-right(@click.prevent='onUpload(croppedImg)') #[strong Upload Image]
 </template>
 <script>
 import api from '@/api';
 import slugWidget from '@/components/widgets/slugWidget';
+import cropperWidget from '@/components/widgets/cropperWidget';
 import hljs from 'highlight.js'
 
 export default {
@@ -133,9 +149,14 @@ export default {
   name: 'EditWidget',
   components: {
     slugWidget,
+    cropperWidget,
   },
   data() {
     return {
+      cropperImg: null,
+      croppedImg: null,
+      inputFileName: null,
+      cropPreviewImg: null,
       staticdomain: 'http://images.kethoughts.com',
       selectedOption: 'publish',
       showPublish: true,
@@ -145,6 +166,7 @@ export default {
       editingVisibility: false,
       radioVisibilitySelection: this.post.status, // FIXME: this widget has been created along with parent component, issue 'undefined'.
       isEditTags: false,
+      isCropperModalActive: false,
       selectedFile: null,
       editorOption: {
         modules: {
@@ -177,6 +199,38 @@ export default {
   },
 
   methods: {
+    inputImage(e) {
+      const file = e.target.files[0];
+      if (!file.type.includes('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (typeof FileReader === 'function') {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          this.inputFileName = file.name;
+          // rebuild cropperjs with the updated source
+          this.$refs.cropper.replace(event.target.result);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Sorry, FileReader API not supported');
+      }
+    },
+    
+    cropImage() {
+      // get image data for post processing, e.g. upload or setting image src
+      this.cropPreviewImg = this.$refs.cropper.getCroppedCanvas().toDataURL();
+      this.$refs.cropper.getCroppedCanvas().toBlob( (blob) => {
+        this.croppedImg = blob;
+        this.croppedImg.name = this.inputFileName || this.post.featured_image
+      })
+    },
+    
+    rotateImage() {
+      this.$refs.cropper.rotate(90);
+    },
+
     onVisibilityChanged() {
       this.post.status = this.radioVisibilitySelection
       this.editingVisibility = false
@@ -194,6 +248,7 @@ export default {
     onUpload(file) {
       api.saveImageToQiniu('kelvin', file).then( res => {
         this.post.featured_image = res.key
+        this.isCropperModalActive = false;
       });
     },
 
@@ -237,7 +292,7 @@ export default {
       // Push image url to rich editor.
       const range = this.$refs.QuillEditor.quill.getSelection();
       this.$refs.QuillEditor.quill.insertEmbed(range.index, 'image', this.staticdomain + '/' + key);
-    }
+    },
 
   },
 
@@ -312,6 +367,25 @@ export default {
   border-radius: 0;
 }
 
+.cropper-image-input {
+  padding: 10px 0;
+}
+
+.cropper-image-area {
+  width: 100%;
+  height: 500px;
+  border: dashed #cacaca 1px;
+  text-align: center;
+}
+
+.cropper-image-preview {
+  width: 150px;
+  height: 150px;
+  border: 1px solid gray;
+  text-align: center;
+  margin: 10px auto;
+}
+
 .section-area {
   align-items: center;
 
@@ -358,7 +432,7 @@ export default {
     align-items: center;
     padding: 10px;
 
-    .image-upload-button, .image-select-button, {
+    .image-upload-button, .image-select-button {
       flex: 1;
     }
 

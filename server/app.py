@@ -160,7 +160,7 @@ class LoginHandler(BaseHandler):
         if hashed_password == user.password:
             encoded_jwt = jwt.encode({
                 'user': {'id': user.id, 'name': user.name},
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60)},
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=120)},
                 config['server']['secret'],
                 algorithm='HS256'
             )

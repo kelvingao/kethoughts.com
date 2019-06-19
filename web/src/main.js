@@ -17,20 +17,6 @@ Vue.use(Buefy, {
 
 
 /*--------------------------------------------------------------
-Custom components
---------------------------------------------------------------*/
-import Home from '@/components/pages/home'
-import Login from '@/components/pages/login'
-import Post from '@/components/pages/post'
-import Manage from '@/components/manage/index'
-import Analytics from '@/components/manage/analytics'
-import Users from '@/components/manage/users/index'
-import Posts from '@/components/manage/posts/index'
-import CreatePost from '@/components/manage/posts/createPost'
-import EditPost from '@/components/manage/posts/editPost'
-
-
-/*--------------------------------------------------------------
 Slug generator
 --------------------------------------------------------------*/
 window.Slug = require('slug')
@@ -72,15 +58,15 @@ const router = new VueRouter({
   mode: 'history',
   routes: [
     { path: '/', redirect: '/posts' },
-    { path: '/posts', component: Home },
-    { path: '/login', component: Login },
-    { path: '/posts/:slug', component: Post  },
-    { path: '/manage', component: Manage, beforeEnter: ifAuthenticated, children: [
-      { path: 'analytics', component: Analytics, meta: { title: 'analytics' } },
-      { path: 'users', component: Users, meta: { title: 'users' } },
-      { path: 'posts', component: Posts, meta: { title: 'posts' }, children: [
-        { path: 'create', component: CreatePost, meta: { title: 'create' }},
-        { path: 'edit/:id', component: EditPost, meta: { title: 'edit' }} ]
+    { path: '/posts', component: (resolve) => require(['@/components/pages/home'],resolve) },
+    { path: '/login', component: (resolve) => require(['@/components/pages/login'],resolve) },
+    { path: '/posts/:slug', component: (resolve) => require(['@/components/pages/post'],resolve)  },
+    { path: '/manage', component: (resolve) => require(['@/components/manage/index'],resolve), beforeEnter: ifAuthenticated, children: [
+      { path: 'analytics', component: (resolve) => require(['@/components/manage/analytics'],resolve), meta: { title: 'analytics' } },
+      { path: 'users', component: (resolve) => require(['@/components/manage/users/index'],resolve), meta: { title: 'users' } },
+      { path: 'posts', component: (resolve) => require(['@/components/manage/posts/index'],resolve), meta: { title: 'posts' }, children: [
+        { path: 'create', component: (resolve) => require(['@/components/manage/posts/createPost'],resolve), meta: { title: 'create' }},
+        { path: 'edit/:id', component: (resolve) => require(['@/components/manage/posts/editPost'],resolve), meta: { title: 'edit' }} ]
       },
     ], meta: { title: 'manage' } }
   ]
